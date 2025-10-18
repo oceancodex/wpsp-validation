@@ -1,0 +1,44 @@
+{
+	"name": "oceancodex/wpsp-validation",
+	"version": "8.4.0",
+	"description": "WordPress Starter Plugin - Validation",
+	"keywords": [
+	],
+	"license": "MIT",
+	"require": {
+		"php": "^8.4",
+		"illuminate/validation": "^v12.34.0",
+		"oceancodex/wpsp-core": "^8.4.0",
+		"oceancodex/wpsp-database": "^8.4.0",
+		"oceancodex/wpsp-translation": "^8.4.0"
+	},
+	"config": {
+		"sort-packages": true
+	},
+	"autoload": {
+		"psr-4": {
+			"WPSPCORE\\Validation\\": "src/"
+		},
+		"files": [
+		]
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"WPSPCORE\\Validation\\Tests\\": "tests/"
+		}
+	},
+	"authors": [
+		{
+			"name": "OceanCodex",
+			"email": "contact@oceancodex.com"
+		}
+	],
+	"scripts": {
+		"post-autoload-dump": [
+		],
+		"post-root-package-install": [
+		],
+		"post-create-project-cmd": [
+		]
+	}
+}
