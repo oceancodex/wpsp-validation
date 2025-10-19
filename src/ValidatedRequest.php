@@ -9,11 +9,6 @@ class ValidatedRequest extends Request {
 
 	use ValidatesRequestTrait;
 
-	/**
-	 * Create validated request from globals
-	 *
-	 * @return static
-	 */
 	public static function capture() {
 		return static::createFromGlobals();
 	}
