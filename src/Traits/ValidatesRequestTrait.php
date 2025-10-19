@@ -7,7 +7,7 @@ use WPSPCORE\Validation\Validation;
 
 trait ValidatesRequestTrait {
 
-	public function passes(array $rules, array $messages = [], array $customAttributes = []) {
+	public function passes($rules, $messages = [], $customAttributes = []) {
 		try {
 			$this->validate($rules, $messages, $customAttributes);
 			return true;
@@ -17,11 +17,11 @@ trait ValidatesRequestTrait {
 		}
 	}
 
-	public function fails(array $rules, array $messages = [], array $customAttributes = []) {
+	public function fails($rules, $messages = [], $customAttributes = []) {
 		return !$this->passes($rules, $messages, $customAttributes);
 	}
 
-	public function errors(array $rules, array $messages = [], array $customAttributes = []) {
+	public function errors($rules, $messages = [], $customAttributes = []) {
 		try {
 			$this->validate($rules, $messages, $customAttributes);
 			return [];
@@ -35,19 +35,18 @@ trait ValidatesRequestTrait {
 	 *
 	 */
 
-	public function validate(array $rules, array $messages = [], array $customAttributes = []) {
+	public function validate($rules, $messages = [], $customAttributes = []) {
 		$data = $this->all();
-
 		return Validation::validate($data, $rules, $messages, $customAttributes);
 	}
 
-	public function validator(array $rules, array $messages = [], array $customAttributes = []) {
+	public function validator($rules, $messages = [], $customAttributes = []) {
 		$data = $this->all();
 
 		return Validation::make($data, $rules, $messages, $customAttributes);
 	}
 
-	public function validated(array $rules, array $messages = [], array $customAttributes = []) {
+	public function validated($rules, $messages = [], $customAttributes = []) {
 		try {
 			return $this->validate($rules, $messages, $customAttributes);
 		}
@@ -56,7 +55,7 @@ trait ValidatesRequestTrait {
 		}
 	}
 
-	public function validateOnly(array $keys, array $rules, array $messages = [], array $customAttributes = []) {
+	public function validateOnly($keys, $rules, $messages = [], $customAttributes = []) {
 		$data = $this->only($keys);
 
 		return Validation::validate($data, $rules, $messages, $customAttributes);
@@ -81,12 +80,12 @@ trait ValidatesRequestTrait {
 		return $data;
 	}
 
-	protected function only(array $keys) {
+	protected function only($keys) {
 		$data = $this->all();
 		return array_intersect_key($data, array_flip($keys));
 	}
 
-	protected function except(array $keys) {
+	protected function except($keys) {
 		$data = $this->all();
 		return array_diff_key($data, array_flip($keys));
 	}

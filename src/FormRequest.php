@@ -4,12 +4,14 @@ namespace WPSPCORE\Validation;
 
 use WPSPCORE\Base\BaseInstances;
 
+/**
+ * @property \WPSPCORE\Validation\Validation $validation
+ */
 abstract class FormRequest extends BaseInstances {
 
 	protected $data          = [];
 	protected $validatedData = [];
-	/** @var Validation */
-	protected $validator;
+	protected $validation;
 
 	/*
 	 *
@@ -54,7 +56,7 @@ abstract class FormRequest extends BaseInstances {
 			throw new \Exception('This action is unauthorized.');
 		}
 
-		$this->validatedData = $this->validator->validate(
+		$this->validatedData = $this->validation->validate(
 			$this->data,
 			$this->rules(),
 			$this->messages(),

@@ -6,46 +6,44 @@ use WPSPCORE\Validation\Validation;
 
 trait ValidatesAttributesTrait {
 
-	protected $validationRules = [];
-
-	protected $validationMessages = [];
-
-	protected $validationCustomAttributes = [];
+	protected $rules            = [];
+	protected $messages         = [];
+	protected $customAttributes = [];
 
 	public function validateAttributes(array $data) {
-		if (empty($this->validationRules)) {
+		if (empty($this->rules)) {
 			return $data;
 		}
 
 		return Validation::validate(
 			$data,
-			$this->validationRules,
-			$this->validationMessages,
-			$this->validationCustomAttributes
+			$this->rules,
+			$this->messages,
+			$this->customAttributes
 		);
 	}
 
-	public function getValidationRules() {
-		return $this->validationRules;
+	public function getRules() {
+		return $this->rules;
 	}
 
-	public function setValidationRules(array $rules) {
-		$this->validationRules = $rules;
+	public function setRules(array $rules) {
+		$this->rules = $rules;
 		return $this;
 	}
 
-	public function getValidationMessages() {
-		return $this->validationMessages;
+	public function getMessages() {
+		return $this->messages;
 	}
 
-	public function setValidationMessages(array $messages) {
-		$this->validationMessages = $messages;
+	public function setMessages(array $messages) {
+		$this->messages = $messages;
 		return $this;
 	}
 
 	public static function bootValidatesAttributes() {
 		static::saving(function($model) {
-			if (!empty($model->validationRules)) {
+			if (!empty($model->rules)) {
 				$model->validateAttributes($model->getAttributes());
 			}
 		});

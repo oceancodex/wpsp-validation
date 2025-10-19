@@ -8,46 +8,24 @@ use Illuminate\Translation\FileLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\DatabasePresenceVerifier;
 use Illuminate\Validation\Factory;
-use WPSPCORE\Base\BaseInstances;
 
-class Validation extends BaseInstances {
+/**
+ * Validation.
+ * @property \Illuminate\Validation\Factory|null        $factory
+ * @property \Illuminate\Translation\Translator|null    $translator
+ * @property \WPSPCORE\Database\Eloquent|null           $eloquent
+ */
+class Validation {
 
-	/** @var Factory|null */
-	protected static $factory = null;
+	protected $factory    = null;
+	protected $translator = null;
+	protected $eloquent   = null;
+	protected $langPaths  = [];
 
-	/** @var Translator|null */
-	protected static $translator = null;
-
-	/** @var \WPSPCORE\Database\Eloquent|null */
-	protected static $eloquent = null;
-
-	protected static $langPaths = [];
-
-	public static function setLangPaths($paths) {
-		self::$langPaths = (array) $paths;
-
-		// Reset translator to reload with new paths
-		self::$translator = null;
-		self::$factory = null;
-	}
-
-	public static function init() {
-		if (!self::$factory) {
-			// Setup translator
-			self::setupTranslator();
-
-			// Create validation factory
-			self::$factory = new Factory(self::$translator, Container::getInstance());
-
-			// Setup database presence verifier for exists/unique rules
-			self::setupPresenceVerifier();
-		}
-	}
-
-	protected static function setupTranslator() {
-		if (!self::$translator) {
+	protected function setupTranslator() {
+		if (!$this->translator) {
 			// Use custom lang paths if set, otherwise fallback
-			$langPaths = !empty(self::$langPaths) ? self::$langPaths : [
+			$langPaths = !empty($this->langPaths) ? $this->langPaths : [
 				__DIR__ . '/../lang',
 			];
 
@@ -56,57 +34,81 @@ class Validation extends BaseInstances {
 			// Get current locale from WordPress or config
 			$locale = function_exists('get_locale') ? get_locale() : 'en';
 
-			self::$translator = new Translator($loader, $locale);
+			$this->translator = new Translator($loader, $locale);
 		}
 	}
 
-	protected static function setupPresenceVerifier() {
-		if (self::$eloquent && self::$eloquent->getCapsule()) {
-			$db = self::$eloquent->getCapsule()->getDatabaseManager();
+	protected function setupPresenceVerifier() {
+		if ($this->eloquent && $this->eloquent->getCapsule()) {
+			$db = $this->eloquent->getCapsule()->getDatabaseManager();
 			$presenceVerifier = new DatabasePresenceVerifier($db);
-			self::$factory->setPresenceVerifier($presenceVerifier);
+			$this->factory->setPresenceVerifier($presenceVerifier);
 		}
 	}
 
-	public static function setEloquentForPresenceVerifier($eloquent) {
-		self::$eloquent = $eloquent;
+	/*
+	 *
+	 */
+
+	public function setLangPaths($paths) {
+		$this->langPaths = (array) $paths;
+
+		// Reset translator to reload with new paths
+		$this->translator = null;
+		$this->factory = null;
+	}
+
+	public function setEloquentForPresenceVerifier($eloquent) {
+		$this->eloquent = $eloquent;
 
 		// Reinitialize if factory already exists
-		if (self::$factory && $eloquent && $eloquent->getCapsule()) {
+		if ($this->factory && $eloquent && $eloquent->getCapsule()) {
 			$db = $eloquent->getCapsule()->getDatabaseManager();
 			$presenceVerifier = new DatabasePresenceVerifier($db);
-			self::$factory->setPresenceVerifier($presenceVerifier);
+			$this->factory->setPresenceVerifier($presenceVerifier);
 		}
 	}
 
-	public static function make(array $data, array $rules, array $messages = [], array $customAttributes = []) {
-		self::init();
-		return self::$factory->make($data, $rules, $messages, $customAttributes);
+	/*
+	 *
+	 */
+
+	public function initFactory() {
+		if (!$this->factory) {
+			// Setup translator
+			$this->setupTranslator();
+
+			// Create validation factory
+			$this->factory = new Factory($this->translator, Container::getInstance());
+
+			// Setup database presence verifier for exists/unique rules
+			$this->setupPresenceVerifier();
+		}
 	}
 
-	public static function validate(array $data, array $rules, array $messages = [], array $customAttributes = []) {
-		$validator = self::make($data, $rules, $messages, $customAttributes);
-		return $validator->validate();
+	public function make(array $data, array $rules, array $messages = [], array $customAttributes = []) {
+		return $this->factory->make($data, $rules, $messages, $customAttributes);
 	}
 
-	public static function factory() {
-		self::init();
-		return self::$factory;
+	public function extend($rule, $extension, $message = null) {
+		$this->factory->extend($rule, $extension, $message);
 	}
 
-	public static function extend($rule, $extension, $message = null) {
-		self::init();
-		self::$factory->extend($rule, $extension, $message);
+	public function factory() {
+		return $this->factory;
 	}
 
-	public static function extendImplicit($rule, $extension, $message = null) {
-		self::init();
-		self::$factory->extendImplicit($rule, $extension, $message);
+	public function replacer($rule, $replacer) {
+		$this->factory->replacer($rule, $replacer);
 	}
 
-	public static function replacer($rule, $replacer) {
-		self::init();
-		self::$factory->replacer($rule, $replacer);
+	public function validate(array $data, array $rules, array $messages = [], array $customAttributes = []) {
+		$validation = $this->make($data, $rules, $messages, $customAttributes);
+		return $validation->validate();
+	}
+
+	public function extendImplicit($rule, $extension, $message = null) {
+		$this->factory->extendImplicit($rule, $extension, $message);
 	}
 
 }
