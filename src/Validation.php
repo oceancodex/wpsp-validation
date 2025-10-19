@@ -21,6 +21,17 @@ class Validation extends BaseInstances {
 	/** @var \WPSPCORE\Database\Eloquent|null */
 	protected static $eloquent = null;
 
+	/** @var array */
+	protected static $langPaths = [];
+
+	public static function setLangPaths($paths) {
+		self::$langPaths = (array) $paths;
+
+		// Reset translator to reload with new paths
+		self::$translator = null;
+		self::$factory = null;
+	}
+
 	/**
 	 * Initialize Validation Factory
 	 */
@@ -42,9 +53,12 @@ class Validation extends BaseInstances {
 	 */
 	protected static function setupTranslator() {
 		if (!self::$translator) {
-			$loader = new FileLoader(new Filesystem(), [
+			// Use custom lang paths if set, otherwise fallback
+			$langPaths = !empty(self::$langPaths) ? self::$langPaths : [
 				__DIR__ . '/../lang',
-			]);
+			];
+
+			$loader = new FileLoader(new Filesystem(), $langPaths);
 
 			// Get current locale from WordPress or config
 			$locale = function_exists('get_locale') ? get_locale() : 'en';
