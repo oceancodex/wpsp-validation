@@ -9,8 +9,15 @@ class RequestWithValidation extends Request {
 
 	use ValidatesRequestTrait;
 
-	public static function capture() {
-		return static::createFromGlobals();
+	public $validation;
+
+	public function setValidation($validation = null) {
+		$this->validation = $validation;
+		return $this;
+	}
+
+	public function getValidation() {
+		return $this->validation;
 	}
 
 }

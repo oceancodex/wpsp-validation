@@ -51,11 +51,9 @@ class Validation {
 	 */
 
 	public function setLangPaths($paths) {
-		$this->langPaths = (array) $paths;
-
-		// Reset translator to reload with new paths
+		$this->langPaths  = $paths;
 		$this->translator = null;
-		$this->factory = null;
+		$this->factory    = null;
 	}
 
 	public function setEloquentForPresenceVerifier($eloquent) {

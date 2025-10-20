@@ -37,13 +37,14 @@ trait ValidatesRequestTrait {
 
 	public function validate($rules, $messages = [], $customAttributes = []) {
 		$data = $this->all();
-		return Validation::validate($data, $rules, $messages, $customAttributes);
+		echo '<pre style="background:white;z-index:9999;position:relative">'; print_r($this->getValidation()); echo '</pre>'; die();
+		return $this->validation->validate($data, $rules, $messages, $customAttributes);
 	}
 
 	public function validator($rules, $messages = [], $customAttributes = []) {
 		$data = $this->all();
 
-		return Validation::make($data, $rules, $messages, $customAttributes);
+		return $this->validation->make($data, $rules, $messages, $customAttributes);
 	}
 
 	public function validated($rules, $messages = [], $customAttributes = []) {
@@ -58,7 +59,7 @@ trait ValidatesRequestTrait {
 	public function validateOnly($keys, $rules, $messages = [], $customAttributes = []) {
 		$data = $this->only($keys);
 
-		return Validation::validate($data, $rules, $messages, $customAttributes);
+		return $this->validation->validate($data, $rules, $messages, $customAttributes);
 	}
 
 	/*
