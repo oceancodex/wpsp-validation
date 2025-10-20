@@ -17,12 +17,12 @@ use Illuminate\Validation\Factory;
  */
 class Validation {
 
-	protected $factory    = null;
-	protected $translator = null;
-	protected $eloquent   = null;
-	protected $langPaths  = [];
+	public $factory    = null;
+	public $translator = null;
+	public $eloquent   = null;
+	public $langPaths  = [];
 
-	protected function setupTranslator() {
+	public function setupTranslator() {
 		if (!$this->translator) {
 			// Use custom lang paths if set, otherwise fallback
 			$langPaths = !empty($this->langPaths) ? $this->langPaths : [
@@ -38,7 +38,7 @@ class Validation {
 		}
 	}
 
-	protected function setupPresenceVerifier() {
+	public function setupPresenceVerifier() {
 		if ($this->eloquent && $this->eloquent->getCapsule()) {
 			$db = $this->eloquent->getCapsule()->getDatabaseManager();
 			$presenceVerifier = new DatabasePresenceVerifier($db);
