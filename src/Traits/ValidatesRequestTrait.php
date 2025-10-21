@@ -37,7 +37,6 @@ trait ValidatesRequestTrait {
 
 	public function validate($rules, $messages = [], $customAttributes = []) {
 		$data = $this->all();
-		echo '<pre style="background:white;z-index:9999;position:relative">'; print_r($this->getValidation()); echo '</pre>'; die();
 		return $this->validation->validate($data, $rules, $messages, $customAttributes);
 	}
 

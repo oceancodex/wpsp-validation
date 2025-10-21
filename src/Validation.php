@@ -17,10 +17,12 @@ use Illuminate\Validation\Factory;
  */
 class Validation {
 
-	public $factory    = null;
-	public $translator = null;
-	public $eloquent   = null;
-	public $langPaths  = [];
+	public $factory      = null;
+	public $translator   = null;
+	public $eloquent     = null;
+	public $langPaths    = [];
+
+	public $instanceInit = false;
 
 	public function setupTranslator() {
 		if (!$this->translator) {

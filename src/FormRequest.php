@@ -9,21 +9,21 @@ use WPSPCORE\Base\BaseInstances;
  */
 abstract class FormRequest extends BaseInstances {
 
-	protected $data          = [];
-	protected $validatedData = [];
-	protected $validation;
+	public $data          = [];
+	public $validatedData = [];
+	public $validation;
 
 	/*
 	 *
 	 */
 
-	abstract public function rules(): array;
+	abstract public function rules();
 
 	/*
 	 *
 	 */
 
-	protected function collectData(): array {
+	public function collectData() {
 		return array_merge(
 			$_GET ?? [],
 			$_POST ?? [],
@@ -31,7 +31,7 @@ abstract class FormRequest extends BaseInstances {
 		);
 	}
 
-	protected function prepareForValidation(): void {
+	public function prepareForValidation() {
 		// Override trong subclass nếu cần
 	}
 
@@ -39,19 +39,19 @@ abstract class FormRequest extends BaseInstances {
 	 *
 	 */
 
-	public function messages(): array {
+	public function messages() {
 		return [];
 	}
 
-	public function attributes(): array {
+	public function attributes() {
 		return [];
 	}
 
-	public function authorize(): bool {
+	public function authorize() {
 		return true;
 	}
 
-	public function validate(): array {
+	public function validate() {
 		if (!$this->authorize()) {
 			throw new \Exception('This action is unauthorized.');
 		}
@@ -78,43 +78,43 @@ abstract class FormRequest extends BaseInstances {
 		return $this->validatedData[$key] ?? $default;
 	}
 
-	public function safe(): array {
+	public function safe() {
 		return $this->validated();
 	}
 
-	public function input(string $key, $default = null) {
+	public function input($key, $default = null) {
 		return $this->data[$key] ?? $default;
 	}
 
-	public function all(): array {
+	public function all() {
 		return $this->data;
 	}
 
-	public function only(array $keys): array {
+	public function only($keys) {
 		return array_intersect_key($this->data, array_flip($keys));
 	}
 
-	public function except(array $keys): array {
+	public function except($keys) {
 		return array_diff_key($this->data, array_flip($keys));
 	}
 
-	public function has(string $key): bool {
+	public function has($key) {
 		return isset($this->data[$key]);
 	}
 
-	public function filled(string $key): bool {
+	public function filled($key) {
 		return $this->has($key) && !empty($this->data[$key]);
 	}
 
-	public function missing(string $key): bool {
+	public function missing($key) {
 		return !$this->has($key);
 	}
 
-	public function merge(array $data): void {
+	public function merge($data) {
 		$this->data = array_merge($this->data, $data);
 	}
 
-	public function replace(array $data): void {
+	public function replace($data) {
 		$this->data = $data;
 	}
 
