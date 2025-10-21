@@ -8,7 +8,6 @@
 	"require": {
 		"php": "^8.4",
 		"illuminate/validation": "^v12.34.0",
-		"oceancodex/wpsp-core": "^8.4.0",
 		"oceancodex/wpsp-database": "^8.4.0",
 		"oceancodex/wpsp-translation": "^8.4.0"
 	},

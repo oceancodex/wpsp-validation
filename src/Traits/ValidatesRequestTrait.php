@@ -69,7 +69,8 @@ trait ValidatesRequestTrait {
 		$data = array_merge(
 			$this->query->all(),
 			$this->request->all(),
-			$this->files->all()
+			$this->files->all(),
+			json_decode($this->getContent(), true)
 		);
 
 		// For WP_REST_Request compatibility
