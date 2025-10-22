@@ -151,8 +151,47 @@ class Handler extends BaseInstances {
 			exit;
 		}
 
-		$this->redirectBack(['error' => 'validation']);
-		exit;
+		/**
+		 * Với request thông thường.
+		 */
+
+		if ($this->funcs->env('APP_DEBUG', true) !== 'true') {
+			$this->fallbackToIgnition($e);
+		}
+		else {
+			$errors = $e->validator->errors()->all();
+			$error_list = '<ul>';
+			foreach ($errors as $error) {
+				$error_list .= '<li>' . esc_html($error) . '</li>';
+			}
+			$error_list .= '</ul>';
+
+			// Sử dụng view.
+			try {
+				$viewInstance = $this->funcs->_viewInstance();
+				if ($viewInstance->exists('errors.default')) {
+					status_header(422);
+					echo $this->funcs->view('errors.default', [
+						'message' => $error_list,
+						'code' => 422,
+						'status' => 'Dữ liệu không hợp lệ',
+					]);
+					exit;
+				}
+			}
+			catch (\Throwable $viewException) {}
+
+			// Sử dụng wp_die.
+			wp_die(
+				'<h1>ERROR: 422 - Dữ liệu không hợp lệ</h1><p>' . $error_list . '</p>',
+				'422 - Dữ liệu không hợp lệ',
+				[
+					'response'  => 422,
+					'back_link' => true,
+					'html' => true
+				]
+			);
+		}
 	}
 
 	protected function handleQueryException(\Throwable $e) {
@@ -160,7 +199,9 @@ class Handler extends BaseInstances {
 		$sql = method_exists($e, 'getSql') ? $e->getSql() : null;
 		$bindings = method_exists($e, 'getBindings') ? $e->getBindings() : [];
 
-		// Nếu là AJAX/API request
+		/**
+		 * Với request AJAX hoặc REST API.
+		 */
 		if ($this->shouldReturnJson()) {
 			status_header(500);
 
@@ -182,7 +223,11 @@ class Handler extends BaseInstances {
 			exit;
 		}
 
-		// Nếu debug mode bật
+		/**
+		 * Với request thông thường.
+		 */
+
+		// Debug mode.
 		if ($this->funcs->env('APP_DEBUG', true) == 'true') {
 			echo '<div style="background:white;padding:20px;border:2px solid #d63638;margin:20px;font-family:monospace;">';
 			echo '<h2 style="color:#d63638;">Database Query Error</h2>';
@@ -197,7 +242,7 @@ class Handler extends BaseInstances {
 			exit;
 		}
 
-		// Production mode
+		// Production mode.
 		wp_die(
 			'<h1>Lỗi cơ sở dữ liệu</h1><p>Đã xảy ra lỗi khi truy vấn cơ sở dữ liệu. Vui lòng thử lại sau.</p>',
 			'500 - Database Error',
