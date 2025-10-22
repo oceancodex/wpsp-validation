@@ -1,4 +1,5 @@
 <?php
+
 namespace WPSPCORE\Validation;
 
 use Illuminate\Validation\ValidationException;
@@ -180,12 +181,13 @@ class Handler extends BaseInstances {
 				status_header(422);
 				echo $this->funcs->view('errors.default', [
 					'message' => $error_list,
-					'code' => 422,
-					'status' => 'Dữ liệu không hợp lệ',
+					'code'    => 422,
+					'status'  => 'Dữ liệu không hợp lệ',
 				]);
 				exit;
 			}
-			catch (\Throwable $viewException) {}
+			catch (\Throwable $viewException) {
+			}
 
 			// Sử dụng wp_die.
 			wp_die(
@@ -194,15 +196,15 @@ class Handler extends BaseInstances {
 				[
 					'response'  => 422,
 					'back_link' => true,
-					'html' => true
+					'html'      => true,
 				]
 			);
 		}
 	}
 
 	protected function handleQueryException(\Throwable $e) {
-		$message = $e->getMessage();
-		$sql = method_exists($e, 'getSql') ? $e->getSql() : null;
+		$message  = $e->getMessage();
+		$sql      = method_exists($e, 'getSql') ? $e->getSql() : null;
 		$bindings = method_exists($e, 'getBindings') ? $e->getBindings() : [];
 
 		/**
@@ -213,15 +215,15 @@ class Handler extends BaseInstances {
 
 			$response = [
 				'success' => false,
-				'error' => [
-					'type' => 'QueryException',
+				'error'   => [
+					'type'    => 'QueryException',
 					'message' => $message,
 				],
 			];
 
 			// Chỉ hiển thị chi tiết SQL khi debug mode
 			if ($this->funcs->env('APP_DEBUG', true) == 'true') {
-				$response['error']['sql'] = $sql;
+				$response['error']['sql']      = $sql;
 				$response['error']['bindings'] = $bindings;
 			}
 
@@ -234,26 +236,39 @@ class Handler extends BaseInstances {
 		 */
 
 		// Debug mode.
-		if ($this->funcs->env('APP_DEBUG', true) == 'true') {
-			echo '<div style="background:white;padding:20px;border:2px solid #d63638;margin:20px;font-family:monospace;">';
-			echo '<h2 style="color:#d63638;">Database Query Error</h2>';
-			echo '<p><strong>Message:</strong> ' . esc_html($message) . '</p>';
-			if ($sql) {
-				echo '<p><strong>SQL:</strong><br><code style="background:#f0f0f1;padding:10px;display:block;overflow-x:auto;">' . esc_html($sql) . '</code></p>';
-			}
-			if (!empty($bindings)) {
-				echo '<p><strong>Bindings:</strong><br><pre style="background:#f0f0f1;padding:10px;overflow-x:auto;">' . esc_html(print_r($bindings, true)) . '</pre></p>';
-			}
-			echo '</div>';
+//		if ($this->funcs->env('APP_DEBUG', true) == 'true') {
+//			echo '<div style="background:white;padding:20px;border:2px solid #d63638;margin:20px;font-family:monospace;">';
+//			echo '<h2 style="color:#d63638;">Database Query Error</h2>';
+//			echo '<p><strong>Message:</strong> ' . esc_html($message) . '</p>';
+//			if ($sql) {
+//				echo '<p><strong>SQL:</strong><br><code style="background:#f0f0f1;padding:10px;display:block;overflow-x:auto;">' . esc_html($sql) . '</code></p>';
+//			}
+//			if (!empty($bindings)) {
+//				echo '<p><strong>Bindings:</strong><br><pre style="background:#f0f0f1;padding:10px;overflow-x:auto;">' . esc_html(print_r($bindings, true)) . '</pre></p>';
+//			}
+//			echo '</div>';
+//			exit;
+//		}
+
+		// Sử dụng view.
+		try {
+			status_header(500);
+			echo $this->funcs->view('errors.query', [
+				'message'  => $message,
+				'sql'      => $sql ?? null,
+				'bindings' => $bindings ?? [],
+			]);
 			exit;
+		}
+		catch (\Throwable $viewException) {
 		}
 
 		// Production mode.
 		wp_die(
-			'<h1>Lỗi cơ sở dữ liệu</h1><p>Đã xảy ra lỗi khi truy vấn cơ sở dữ liệu. Vui lòng thử lại sau.</p>',
-			'500 - Database Error',
+			'<h1>ERROR: 500 - Lỗi cơ sở dữ liệu</h1><p'.$message.'</p>',
+			'ERROR: 500 - Database Error',
 			[
-				'response' => 500,
+				'response'  => 500,
 				'back_link' => true,
 			]
 		);
