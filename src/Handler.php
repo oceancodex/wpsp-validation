@@ -146,6 +146,9 @@ class Handler extends BaseInstances {
 	 */
 
 	protected function handleValidationException(ValidationException $e) {
+		/**
+		 * Với request AJAX hoặc REST API.
+		 */
 		if ($this->shouldReturnJson()) {
 			$this->invalidJson($e);
 			exit;
@@ -155,11 +158,17 @@ class Handler extends BaseInstances {
 		 * Với request thông thường.
 		 */
 
-		if ($this->funcs->env('APP_DEBUG', true) !== 'true') {
+		// Debug mode.
+		if ($this->funcs->env('APP_DEBUG', true) == 'true') {
 			$this->fallbackToIgnition($e);
 		}
+
+		// Production mode.
 		else {
+			// Lấy danh sách lỗi.
 			$errors = $e->validator->errors()->all();
+
+			// Tạo danh sách lỗi HTML.
 			$error_list = '<ul>';
 			foreach ($errors as $error) {
 				$error_list .= '<li>' . esc_html($error) . '</li>';
@@ -168,23 +177,20 @@ class Handler extends BaseInstances {
 
 			// Sử dụng view.
 			try {
-				$viewInstance = $this->funcs->_viewInstance();
-				if ($viewInstance->exists('errors.default')) {
-					status_header(422);
-					echo $this->funcs->view('errors.default', [
-						'message' => $error_list,
-						'code' => 422,
-						'status' => 'Dữ liệu không hợp lệ',
-					]);
-					exit;
-				}
+				status_header(422);
+				echo $this->funcs->view('errors.default', [
+					'message' => $error_list,
+					'code' => 422,
+					'status' => 'Dữ liệu không hợp lệ',
+				]);
+				exit;
 			}
 			catch (\Throwable $viewException) {}
 
 			// Sử dụng wp_die.
 			wp_die(
 				'<h1>ERROR: 422 - Dữ liệu không hợp lệ</h1><p>' . $error_list . '</p>',
-				'422 - Dữ liệu không hợp lệ',
+				'ERROR: 422 - Dữ liệu không hợp lệ',
 				[
 					'response'  => 422,
 					'back_link' => true,
