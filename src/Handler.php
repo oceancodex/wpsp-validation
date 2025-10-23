@@ -83,18 +83,12 @@ class Handler extends BaseInstances {
 		return false;
 	}
 
-	public function invalidJson(ValidationException $e) {
-		wp_send_json([
-			'message' => $e->getMessage(),
-			'errors'  => $e->validator->errors()->messages(),
-		], 422);
-		exit;
+	public function shouldReturnJson() {
+		return $this->funcs->_shouldReturnJson();
 	}
 
-	public function shouldReturnJson() {
-		return wp_doing_ajax() ||
-			(defined('REST_REQUEST') && REST_REQUEST) ||
-			(!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+	public function wantJson() {
+		return $this->shouldReturnJson();
 	}
 
 	public function prepareResponse(\Throwable $e) {
@@ -147,11 +141,18 @@ class Handler extends BaseInstances {
 	 */
 
 	protected function handleValidationException(ValidationException $e) {
+		status_header(422);
+
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->shouldReturnJson()) {
-			$this->invalidJson($e);
+		if ($this->wantJson()) {
+			wp_send_json([
+				'success' => false,
+				'data'    => null,
+				'errors'  => $e->validator->errors()->messages(),
+				'message' => $e->getMessage(),
+			], 422);
 			exit;
 		}
 
@@ -160,7 +161,7 @@ class Handler extends BaseInstances {
 		 */
 
 		// Debug mode.
-		if ($this->funcs->env('APP_DEBUG', true) == 'true') {
+		if ($this->funcs->_isDebug()) {
 			$this->fallbackToIgnition($e);
 		}
 
@@ -170,19 +171,19 @@ class Handler extends BaseInstances {
 			$errors = $e->validator->errors()->all();
 
 			// Tạo danh sách lỗi HTML.
-			$error_list = '<ul>';
+			$errorList = '<ul>';
 			foreach ($errors as $error) {
-				$error_list .= '<li>' . esc_html($error) . '</li>';
+				$errorList .= '<li>' . $error . '</li>';
 			}
-			$error_list .= '</ul>';
+			$errorList .= '</ul>';
 
 			// Sử dụng view.
 			try {
-				status_header(422);
 				echo $this->funcs->view('errors.default', [
-					'message' => $error_list,
-					'code'    => 422,
-					'status'  => 'Dữ liệu không hợp lệ',
+					'message'      => 'Vui lòng kiểm tra lại dữ liệu bên dưới:',
+					'code'         => 422,
+					'errorMessage' => $errorList,
+					'status'       => 'Dữ liệu không hợp lệ',
 				]);
 				exit;
 			}
@@ -191,18 +192,21 @@ class Handler extends BaseInstances {
 
 			// Sử dụng wp_die.
 			wp_die(
-				'<h1>ERROR: 422 - Dữ liệu không hợp lệ</h1><p>' . $error_list . '</p>',
+				'<h1>ERROR: 422 - Dữ liệu không hợp lệ</h1><p>' . $errorList . '</p>',
 				'ERROR: 422 - Dữ liệu không hợp lệ',
 				[
 					'response'  => 422,
 					'back_link' => true,
-					'html'      => true,
 				]
 			);
 		}
 	}
 
 	protected function handleQueryException(\Throwable $e) {
+		status_header(500);
+
+		global $wpdb;
+
 		$message  = $e->getMessage();
 		$sql      = method_exists($e, 'getSql') ? $e->getSql() : null;
 		$bindings = method_exists($e, 'getBindings') ? $e->getBindings() : [];
@@ -210,24 +214,40 @@ class Handler extends BaseInstances {
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->shouldReturnJson()) {
-			status_header(500);
+		if ($this->wantJson()) {
 
-			$response = [
-				'success' => false,
-				'error'   => [
-					'type'    => 'QueryException',
+			// Debug mode.
+			if ($this->funcs->isDebug()) {
+				wp_send_json([
+					'success' => false,
+					'data'    => null,
+					'errors'  => [
+						[
+							'type'     => 'QueryException',
+							'sql'      => $sql,
+							'bindings' => $bindings,
+							'error'    => $wpdb->last_error ?? null,
+						],
+					],
 					'message' => $message,
-				],
-			];
-
-			// Chỉ hiển thị chi tiết SQL khi debug mode
-			if ($this->funcs->env('APP_DEBUG', true) == 'true') {
-				$response['error']['sql']      = $sql;
-				$response['error']['bindings'] = $bindings;
+				], 500);
 			}
 
-			wp_send_json($response, 500);
+			// Production mode.
+			else {
+				wp_send_json([
+					'success' => false,
+					'data'    => null,
+					'errors'  => [
+						[
+							'type'  => 'QueryException',
+							'error' => $wpdb->last_error ?? null,
+						],
+					],
+					'message' => $message,
+				], 500);
+			}
+
 			exit;
 		}
 
@@ -236,60 +256,76 @@ class Handler extends BaseInstances {
 		 */
 
 		// Debug mode.
-//		if ($this->funcs->env('APP_DEBUG', true) == 'true') {
-//			echo '<div style="background:white;padding:20px;border:2px solid #d63638;margin:20px;font-family:monospace;">';
-//			echo '<h2 style="color:#d63638;">Database Query Error</h2>';
-//			echo '<p><strong>Message:</strong> ' . esc_html($message) . '</p>';
-//			if ($sql) {
-//				echo '<p><strong>SQL:</strong><br><code style="background:#f0f0f1;padding:10px;display:block;overflow-x:auto;">' . esc_html($sql) . '</code></p>';
-//			}
-//			if (!empty($bindings)) {
-//				echo '<p><strong>Bindings:</strong><br><pre style="background:#f0f0f1;padding:10px;overflow-x:auto;">' . esc_html(print_r($bindings, true)) . '</pre></p>';
-//			}
-//			echo '</div>';
-//			exit;
-//		}
+		if ($this->funcs->isDebug()) {
+			// Sử dụng view.
+			try {
+				echo $this->funcs->view('errors.query', [
+					'message'  => $message,
+					'sql'      => $sql ?? null,
+					'bindings' => $bindings ?? [],
+					'error'    => $wpdb->last_error ?? null,
+				]);
+				exit;
+			}
+			catch (\Throwable $viewException) {
+			}
 
-		// Sử dụng view.
-		try {
-			status_header(500);
-			echo $this->funcs->view('errors.query', [
-				'message'  => $message,
-				'sql'      => $sql ?? null,
-				'bindings' => $bindings ?? [],
-			]);
-			exit;
-		}
-		catch (\Throwable $viewException) {
+			// Sử dụng wp_die.
+			wp_die(
+				'<h1>ERROR: 500 - Lỗi truy vấn cơ sở dữ liệu</h1><p>' . $message . '</p>',
+				'ERROR: 500 - Lỗi truy vấn cơ sở dữ liệu',
+				[
+					'response'  => 500,
+					'back_link' => true,
+				]
+			);
 		}
 
 		// Production mode.
-		wp_die(
-			'<h1>ERROR: 500 - Lỗi cơ sở dữ liệu</h1><p'.$message.'</p>',
-			'ERROR: 500 - Database Error',
-			[
-				'response'  => 500,
-				'back_link' => true,
-			]
-		);
+		else {
+			// Sử dụng view.
+			try {
+				echo $this->funcs->view('errors.query', [
+					'message' => $message,
+					'error'   => $wpdb->last_error ?? null,
+				]);
+				exit;
+			}
+			catch (\Throwable $viewException) {
+			}
+
+			// Sử dụng wp_die.
+			wp_die(
+				'<h1>ERROR: 500 - Lỗi truy vấn cơ sở dữ liệu</h1><p>' . $message . '</p>',
+				'ERROR: 500 - Lỗi truy vấn cơ sở dữ liệu',
+				[
+					'response'  => 500,
+					'back_link' => true,
+				]
+			);
+		}
 	}
 
 	protected function handleModelNotFoundException(\Throwable $e) {
-		$modelName = method_exists($e, 'getModelName') ? $e->getModelName() : null;
+		status_header(404);
+
 		$message   = $e->getMessage();
+		$modelName = method_exists($e, 'getModelName') ? $e->getModelName() : null;
 
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->shouldReturnJson()) {
-			status_header(404);
+		if ($this->wantJson()) {
 			wp_send_json([
 				'success' => false,
-				'error'   => [
-					'type'    => 'ModelNotFoundException',
-					'message' => $message,
-					'model'   => $modelName,
+				'data'    => null,
+				'errors'  => [
+					[
+						'type' => 'ModelNotFoundException',
+						'model' => $modelName,
+					]
 				],
+				'message' => $message,
 			], 404);
 			exit;
 		}
@@ -300,24 +336,19 @@ class Handler extends BaseInstances {
 
 		// Sử dụng view.
 		try {
-			$viewInstance = $this->funcs->_viewInstance();
-			if ($viewInstance->exists('errors.model-not-found')) {
-				status_header(404);
-				echo $this->funcs->view('errors.model-not-found', [
-					'message' => $message,
-					'model'   => $modelName,
-				]);
-				exit;
-			}
+			echo $this->funcs->view('errors.model-not-found', [
+				'message' => $message,
+				'model'   => $modelName,
+			]);
+			exit;
 		}
 		catch (\Throwable $viewException) {
-			// Nếu view bị lỗi, fallback
 		}
 
-		// Fallback: Sử dụng wp_die() với status 404
+		// Sử dụng wp_die.
 		wp_die(
-			'<h1>Model not found</h1><p>' . esc_html($message) . '</p>',
-			'404 - Model not found',
+			'<h1>ERROR: 404 - Không tìm thấy bản ghi</h1><p>' . esc_html($message) . '</p>',
+			'ERROR: 404 - Không tìm thấy bản ghi',
 			[
 				'response'  => 404,
 				'back_link' => true,
@@ -326,19 +357,23 @@ class Handler extends BaseInstances {
 	}
 
 	protected function handleAuthorizationException(\Throwable $e) {
+		status_header(403);
+
 		$message = $e->getMessage();
 
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->shouldReturnJson()) {
-			status_header(403);
+		if ($this->wantJson()) {
 			wp_send_json([
 				'success' => false,
-				'error'   => [
-					'type'    => 'AuthorizationException',
-					'message' => $message,
+				'data'    => null,
+				'errors'  => [
+					[
+						'type' => 'AuthorizationException',
+					],
 				],
+				'message' => $message,
 			], 403);
 			exit;
 		}
@@ -346,9 +381,21 @@ class Handler extends BaseInstances {
 		/**
 		 * Với request thông thường.
 		 */
+
+		// Sử dụng view.
+		try {
+			echo $this->funcs->view('errors.403', [
+				'message' => $message,
+			]);
+			exit;
+		}
+		catch (\Throwable $viewException) {
+		}
+
+		// Sử dụng wp_die.
 		wp_die(
-			'<h1>Không có quyền truy cập</h1><p>' . esc_html($message) . '</p>',
-			'403 - Forbidden',
+			'<h1>ERROR: 403 - Truy cập bị từ chối</h1><p>' . $message . '</p>',
+			'ERROR: 403 - Truy cập bị từ chối',
 			[
 				'response'  => 403,
 				'back_link' => true,
@@ -357,34 +404,60 @@ class Handler extends BaseInstances {
 	}
 
 	protected function handleAuthenticationException(\Throwable $e) {
+		status_header(401);
+
 		$message    = $e->getMessage();
 		$guards     = method_exists($e, 'guards') ? $e->guards() : [];
 		$redirectTo = method_exists($e, 'redirectTo') ? $e->redirectTo() : null;
 
-		// Nếu là AJAX/API request
-		if ($this->shouldReturnJson()) {
-			status_header(401);
+		/**
+		 * Với request AJAX hoặc REST API.
+		 */
+
+		if ($this->wantJson()) {
 			wp_send_json([
 				'success' => false,
-				'error'   => [
-					'type'    => 'AuthenticationException',
-					'message' => $message,
-					'guards'  => $guards,
+				'data'    => null,
+				'errors'  => [
+					[
+						'type'   => 'AuthenticationException',
+						'guards' => $guards,
+					],
 				],
+				'message' => $message,
 			], 401);
 			exit;
 		}
 
-		// Nếu có redirect URL
+		/**
+		 * Với request thông thường.
+		 */
+
+		// Redirect.
 		if ($redirectTo) {
-			wp_safe_redirect($redirectTo);
+			wp_redirect($redirectTo);
 			exit;
 		}
 
-		// Redirect về trang login với return URL
-		$loginUrl = wp_login_url($_SERVER['REQUEST_URI'] ?? '');
-		wp_safe_redirect($loginUrl);
-		exit;
+		// Sử dụng view.
+		try {
+			echo $this->funcs->view('errors.401', [
+				'message' => $message,
+			]);
+			exit;
+		}
+		catch (\Throwable $viewException) {
+		}
+
+		// Sử dụng wp_die.
+		wp_die(
+			'<h1>ERROR: 401 - Chưa xác thực</h1><p>' . $message . '</p>',
+			'ERROR: 401 - Chưa xác thực',
+			[
+				'response'  => 401,
+				'back_link' => true,
+			]
+		);
 	}
 
 	protected function handleHttpException(\Throwable $e) {
@@ -392,59 +465,67 @@ class Handler extends BaseInstances {
 		$message    = $e->getMessage();
 		$headers    = method_exists($e, 'getHeaders') ? $e->getHeaders() : [];
 
-		// Set headers
+		status_header($statusCode);
+
+		// Set headers bổ sung.
 		foreach ($headers as $key => $value) {
 			if (!headers_sent()) {
 				header("{$key}: {$value}");
 			}
 		}
 
-		// Nếu là AJAX/API request
-		if ($this->shouldReturnJson()) {
-			status_header($statusCode);
+		/**
+		 * Với request AJAX hoặc REST API.
+		 */
+
+		if ($this->wantJson()) {
 			wp_send_json([
 				'success' => false,
-				'error'   => [
-					'type'    => 'HttpException',
-					'message' => $message,
-					'code'    => $statusCode,
+				'data'    => null,
+				'errors'  => [
+					[
+						'type' => 'HttpException',
+					],
 				],
+				'message' => $message,
 			], $statusCode);
 			exit;
 		}
 
-		// Kiểm tra view tùy chỉnh
-		$viewName = "errors.{$statusCode}";
+		/**
+		 * Với request thông thường.
+		 */
 
+		// Sử dụng view.
 		try {
+			$viewName     = "errors.{$statusCode}";
 			$viewInstance = $this->funcs->_viewInstance();
 
 			if ($viewInstance->exists($viewName)) {
-				status_header($statusCode);
 				echo $this->funcs->view($viewName, [
-					'message'    => $message,
-					'statusCode' => $statusCode,
+					'message' => $message,
+					'code'    => $statusCode,
+					'status'  => 'Lỗi HTTP',
 				]);
 				exit;
 			}
 
 			if ($viewInstance->exists('errors.default')) {
-				status_header($statusCode);
 				echo $this->funcs->view('errors.default', [
-					'message'    => $message,
-					'statusCode' => $statusCode,
+					'message' => $message,
+					'code'    => $statusCode,
+					'status'  => 'Lỗi HTTP',
 				]);
 				exit;
 			}
 		}
 		catch (\Throwable $viewException) {
-			// Fallback
 		}
 
-		// Fallback: wp_die()
+		// Sử dụng wp_die.
 		wp_die(
-			'<h1>Lỗi ' . $statusCode . '</h1><p>' . esc_html($message) . '</p>',
-			$statusCode . ' - Error',
+			'<h1>ERROR: ' . $statusCode . ' - Lỗi HTTP</h1><p>' . $message . '</p>',
+			'ERROR: ' . $statusCode . ' - Lỗi HTTP',
 			[
 				'response'  => $statusCode,
 				'back_link' => true,
