@@ -358,7 +358,7 @@ class Handler extends BaseInstances {
 			// Sử dụng view.
 			try {
 				echo $this->funcs->view('errors.default', [
-					'message'      => 'Vui lòng kiểm tra lại dữ liệu bên dưới:',
+					'message'      => 'Vui lòng kiểm tra lại dữ liệu theo thông tin bên dưới:',
 					'code'         => 422,
 					'errorMessage' => $errorList,
 					'status'       => 'Dữ liệu không hợp lệ',
