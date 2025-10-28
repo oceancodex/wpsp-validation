@@ -1,15 +1,15 @@
 {
 	"name": "oceancodex/wpsp-validation",
-	"version": "8.4.0",
+	"version": "8.1.0",
 	"description": "WordPress Starter Plugin - Validation",
 	"keywords": [
 	],
 	"license": "MIT",
 	"require": {
-		"php": "^8.4",
-		"illuminate/validation": "^v12.34.0",
-		"oceancodex/wpsp-database": "^8.4.0",
-		"oceancodex/wpsp-translation": "^8.4.0"
+		"php": "^8.1",
+		"illuminate/validation": "^v10.49.0",
+		"oceancodex/wpsp-database": "^8.1.0",
+		"oceancodex/wpsp-translation": "^8.1.0"
 	},
 	"config": {
 		"sort-packages": true
