@@ -98,8 +98,14 @@ class Handler extends BaseInstances {
 			exit;
 		}
 
-		$this->redirectBack(['error' => 'exception']);
-		exit;
+		wp_die(
+			'<h1>ERROR: 500</h1><p>' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . '</p>',
+			'ERROR: 500',
+			[
+				'response'  => 500,
+				'back_link' => true,
+			]
+		);
 	}
 
 	public function prepareJsonResponse(\Throwable $e) {
