@@ -3,11 +3,10 @@
 namespace WPSPCORE\Validation\Traits;
 
 use Illuminate\Validation\ValidationException;
-use WPSPCORE\Validation\Validation;
 
 trait ValidatesRequestTrait {
 
-	public function passes($rules, $messages = [], $customAttributes = []) {
+	public function passes($rules, $messages = [], $customAttributes = []): bool {
 		try {
 			$this->validate($rules, $messages, $customAttributes);
 			return true;
@@ -17,7 +16,7 @@ trait ValidatesRequestTrait {
 		}
 	}
 
-	public function fails($rules, $messages = [], $customAttributes = []) {
+	public function fails($rules, $messages = [], $customAttributes = []): bool {
 		return !$this->passes($rules, $messages, $customAttributes);
 	}
 
@@ -65,7 +64,7 @@ trait ValidatesRequestTrait {
 	 *
 	 */
 
-	protected function all() {
+	protected function all(): array {
 		$data = array_merge(
 			$this->query->all(),
 			$this->request->all(),
@@ -81,12 +80,12 @@ trait ValidatesRequestTrait {
 		return $data;
 	}
 
-	protected function only($keys) {
+	protected function only($keys): array {
 		$data = $this->all();
 		return array_intersect_key($data, array_flip($keys));
 	}
 
-	protected function except($keys) {
+	protected function except($keys): array {
 		$data = $this->all();
 		return array_diff_key($data, array_flip($keys));
 	}

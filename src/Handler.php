@@ -84,16 +84,16 @@ class Handler extends BaseInstances {
 		return false;
 	}
 
-	public function shouldReturnJson() {
-		return $this->funcs->_shouldReturnJson();
+	public function expectsJson() {
+		return $this->funcs->_expectsJson();
 	}
 
-	public function wantJson() {
-		return $this->shouldReturnJson();
+	public function wantsJson() {
+		return $this->expectsJson();
 	}
 
 	public function prepareResponse(\Throwable $e) {
-		if ($this->shouldReturnJson()) {
+		if ($this->expectsJson()) {
 			$this->prepareJsonResponse($e);
 			exit;
 		}
@@ -158,7 +158,7 @@ class Handler extends BaseInstances {
 		 * Với request AJAX hoặc REST API.
 		 */
 
-		if ($this->wantJson()) {
+		if ($this->wantsJson()) {
 			wp_send_json([
 				'success' => false,
 				'data'    => null,
@@ -212,7 +212,7 @@ class Handler extends BaseInstances {
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->wantJson()) {
+		if ($this->wantsJson()) {
 			wp_send_json([
 				'success' => false,
 				'data'    => null,
@@ -269,7 +269,7 @@ class Handler extends BaseInstances {
 		 * Với request AJAX hoặc REST API.
 		 */
 
-		if ($this->wantJson()) {
+		if ($this->wantsJson()) {
 			wp_send_json([
 				'success' => false,
 				'data'    => null,
@@ -330,7 +330,7 @@ class Handler extends BaseInstances {
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->wantJson()) {
+		if ($this->wantsJson()) {
 			wp_send_json([
 				'success' => false,
 				'data'    => null,
@@ -395,7 +395,7 @@ class Handler extends BaseInstances {
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->wantJson()) {
+		if ($this->wantsJson()) {
 			wp_send_json([
 				'success' => false,
 				'data'    => null,
@@ -444,7 +444,7 @@ class Handler extends BaseInstances {
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->wantJson()) {
+		if ($this->wantsJson()) {
 
 			// Debug mode - hiển thị thông tin chi tiết
 			if ($this->funcs->env('APP_DEBUG', true) == 'true') {
@@ -549,7 +549,7 @@ class Handler extends BaseInstances {
 		/**
 		 * Với request AJAX hoặc REST API.
 		 */
-		if ($this->wantJson()) {
+		if ($this->wantsJson()) {
 
 			// Debug mode.
 			if ($this->funcs->isDebug()) {
