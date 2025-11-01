@@ -8,6 +8,7 @@ use Illuminate\Translation\FileLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\DatabasePresenceVerifier;
 use Illuminate\Validation\Factory;
+use WPSPCORE\Base\BaseInstances;
 
 /**
  * Validation.
@@ -15,27 +16,34 @@ use Illuminate\Validation\Factory;
  * @property \Illuminate\Translation\Translator|null    $translator
  * @property \WPSPCORE\Database\Eloquent|null           $eloquent
  */
-class Validation {
+class Validation extends BaseInstances {
 
 	public $factory      = null;
 	public $translator   = null;
 	public $eloquent     = null;
 	public $langPaths    = [];
 
-	public $instanceInit = false;
-
 	public function setupTranslator() {
 		if (!$this->translator) {
-			// Use custom lang paths if set, otherwise fallback
 			$langPaths = !empty($this->langPaths) ? $this->langPaths : [
 				__DIR__ . '/../lang',
 			];
 
-			$loader = new FileLoader(new Filesystem(), $langPaths);
+			// Lấy path đầu tiên làm mặc định
+			$defaultPath = is_array($langPaths) ? reset($langPaths) : $langPaths;
 
-			// Get current locale from WordPress or config
+			$loader = new FileLoader(new Filesystem(), $defaultPath);
+
+			// Nếu có nhiều path, thêm namespace thủ công
+			if (is_array($langPaths)) {
+				foreach ($langPaths as $namespace => $path) {
+					if ($path !== $defaultPath) {
+						$loader->addNamespace(is_string($namespace) ? $namespace : 'extra', $path);
+					}
+				}
+			}
+
 			$locale = function_exists('get_locale') ? get_locale() : 'en';
-
 			$this->translator = new Translator($loader, $locale);
 		}
 	}

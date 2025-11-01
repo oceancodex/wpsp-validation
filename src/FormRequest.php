@@ -2,6 +2,7 @@
 
 namespace WPSPCORE\Validation;
 
+use Illuminate\Validation\Validator;
 use WPSPCORE\Base\BaseInstances;
 
 /**
@@ -17,21 +18,19 @@ abstract class FormRequest extends BaseInstances {
 	 *
 	 */
 
-	public function authorize() {
-		return true;
-	}
+	abstract public function authorize(): bool;
 
-	abstract public function rules();
+	abstract public function rules(): array;
 
 	/*
 	 *
 	 */
 
-	public function messages() {
+	public function messages(): array {
 		return [];
 	}
 
-	public function attributes() {
+	public function attributes(): array {
 		return [];
 	}
 
@@ -48,12 +47,23 @@ abstract class FormRequest extends BaseInstances {
 			throw $this->createAuthorizationException();
 		}
 
-		$this->validatedData = $this->validation->validate(
+		$validator = $this->validation->make(
 			$this->data,
 			$this->rules(),
 			$this->messages(),
 			$this->attributes()
 		);
+
+		// Gọi withValidator để cho phép tùy chỉnh validator
+		$this->withValidator($validator);
+
+		// Kiểm tra validation
+		if ($validator->fails()) {
+			$this->failedValidation($validator);
+		}
+
+		// Lưu validated data
+		$this->validatedData = $validator->validated();
 
 		return $this->validatedData;
 	}
@@ -70,11 +80,27 @@ abstract class FormRequest extends BaseInstances {
 		return $this->validatedData[$key] ?? $default;
 	}
 
+	/**
+	 * @param Validator $validator
+	 *
+	 */
+	public function withValidator($validator) {
+		// Override trong subclass nếu cần
+	}
+
+	/**
+	 * @param Validator $validator
+	 *
+	 */
+	public function failedValidation($validator) {
+		// Override trong subclass nếu cần
+	}
+
 	/*
 	 *
 	 */
 
-	public function collectData() {
+	protected function collectData() {
 		return array_merge(
 			$_GET ?? [],
 			$_POST ?? [],
@@ -83,7 +109,7 @@ abstract class FormRequest extends BaseInstances {
 		);
 	}
 
-	public function collectRawInput() {
+	protected function collectRawInput() {
 		$rawData = file_get_contents('php://input');
 		if (empty($rawData)) {
 			$rawData = $this->request->getContent();
