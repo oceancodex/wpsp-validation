@@ -64,12 +64,12 @@ trait ValidatesRequestTrait {
 	 *
 	 */
 
-	protected function all(): array {
+	public function all(): array {
 		$data = array_merge(
 			$this->query->all(),
 			$this->request->all(),
 			$this->files->all(),
-			json_decode($this->getContent(), true)
+			json_decode($this->getContent(), true) ?? []
 		);
 
 		// For WP_REST_Request compatibility
@@ -80,12 +80,12 @@ trait ValidatesRequestTrait {
 		return $data;
 	}
 
-	protected function only($keys): array {
+	public function only($keys): array {
 		$data = $this->all();
 		return array_intersect_key($data, array_flip($keys));
 	}
 
-	protected function except($keys): array {
+	public function except($keys): array {
 		$data = $this->all();
 		return array_diff_key($data, array_flip($keys));
 	}
