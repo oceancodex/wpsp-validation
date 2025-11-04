@@ -46,8 +46,7 @@ abstract class FormRequest extends BaseInstances {
 		if (!$this->authorize()) {
 			throw $this->createAuthorizationException();
 		}
-
-		$validator = $this->validation->make(
+		$validator = $this->funcs->getValidation()->make(
 			$this->data,
 			$this->rules(),
 			$this->messages(),
