@@ -15,7 +15,7 @@ class Handler extends BaseInstances {
 		'password_confirmation',
 	];
 
-	protected $ignitionHandler = null;
+	protected $existsExceptionHandler = null;
 
 	/*
 	 *
@@ -23,7 +23,7 @@ class Handler extends BaseInstances {
 
 	public function __construct($mainPath = null, $rootNamespace = null, $prefixEnv = null, $extraParams = []) {
 		parent::__construct($mainPath, $rootNamespace, $prefixEnv, $extraParams);
-		$this->ignitionHandler = $extraParams['ignition_handler'] ?? null;
+		$this->existsExceptionHandler = $extraParams['exists_exception_handler'] ?? null;
 	}
 
 	/*
@@ -134,8 +134,8 @@ class Handler extends BaseInstances {
 	}
 
 	public function fallbackToIgnition(\Throwable $e) {
-		if ($this->ignitionHandler && is_callable($this->ignitionHandler)) {
-			call_user_func($this->ignitionHandler, $e);
+		if ($this->existsExceptionHandler && is_callable($this->existsExceptionHandler)) {
+			call_user_func($this->existsExceptionHandler, $e);
 		}
 		else {
 			// Nếu không có Ignition handler, hiển thị lỗi đơn giản
