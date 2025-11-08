@@ -2,7 +2,6 @@
 
 namespace WPSPCORE\Validation;
 
-use Doctrine\ORM\Mapping\MappingException;
 use Illuminate\Validation\ValidationException;
 use WPSPCORE\Base\BaseInstances;
 
@@ -134,13 +133,46 @@ class Handler extends BaseInstances {
 	}
 
 	public function fallbackToIgnition(\Throwable $e) {
+		// Laravel 12.29+ built-in local error page
+		if (class_exists('\Illuminate\Foundation\Exceptions\Renderer')) {
+			try {
+				$renderer = new \Illuminate\Foundation\Exceptions\Renderer();
+				$response = $renderer->render($e);
+
+				// Nếu là Symfony Response object có nội dung
+				if (method_exists($response, 'getContent')) {
+					$content = $response->getContent();
+
+					// Nếu rỗng, fallback
+					if (trim($content) !== '') {
+						http_response_code($response->getStatusCode());
+						echo $content;
+						exit;
+					}
+				}
+			}
+			catch (\Throwable $fallback) {
+				// Nếu render lỗi, fallback xuống Ignition hoặc wp_die
+			}
+		}
+
+		// Nếu có Ignition → dùng Ignition
+		if (class_exists('\Spatie\LaravelIgnition\Ignition')) {
+			\Spatie\LaravelIgnition\Ignition::make()
+				->shouldDisplayException(true)
+				->register()
+				->renderException($e);
+			exit;
+		}
+
+		// Nếu có handler cũ đã tồn tại → gọi lại
 		if ($this->existsExceptionHandler && is_callable($this->existsExceptionHandler)) {
 			call_user_func($this->existsExceptionHandler, $e);
+			return;
 		}
-		else {
-			// Nếu không có Ignition handler, hiển thị lỗi đơn giản
-			$this->prepareResponse($e);
-		}
+
+		// Cuối cùng fallback về hiển thị đơn giản
+		$this->prepareResponse($e);
 	}
 
 	/*
@@ -401,9 +433,9 @@ class Handler extends BaseInstances {
 				'data'    => null,
 				'errors'  => [
 					[
-						'type' => 'ModelNotFoundException',
+						'type'  => 'ModelNotFoundException',
 						'model' => $modelName,
-					]
+					],
 				],
 				'message' => $message,
 			], 404);
@@ -434,107 +466,6 @@ class Handler extends BaseInstances {
 				'back_link' => true,
 			]
 		);
-	}
-
-	protected function handleORMMappingException(MappingException $e) {
-		status_header(500);
-
-		$message = $e->getMessage();
-
-		/**
-		 * Với request AJAX hoặc REST API.
-		 */
-		if ($this->wantsJson()) {
-
-			// Debug mode - hiển thị thông tin chi tiết
-			if ($this->funcs->env('APP_DEBUG', true) == 'true') {
-				wp_send_json([
-					'success' => false,
-					'data'    => null,
-					'errors'  => [
-						[
-							'type'      => 'ORMMappingException',
-							'message'   => $message,
-							'file'      => $e->getFile(),
-							'line'      => $e->getLine(),
-							'exception' => get_class($e),
-						]
-					],
-					'message' => $message,
-				], 500);
-			}
-			// Production mode - ẩn thông tin nhạy cảm
-			else {
-				wp_send_json([
-					'success' => false,
-					'data'    => null,
-					'errors'  => [
-						[
-							'type' => 'ORMMappingException',
-						]
-					],
-					'message' => 'Lỗi cấu hình ORM. Vui lòng liên hệ quản trị viên.',
-				], 500);
-			}
-			exit;
-		}
-
-		/**
-		 * Với request thông thường.
-		 */
-
-		// Debug mode
-		if ($this->funcs->env('APP_DEBUG', true) == 'true') {
-			// Sử dụng view.
-			try {
-				echo $this->funcs->view('errors.orm-mapping', [
-					'message'   => $message,
-					'exception' => get_class($e),
-					'file'      => $e->getFile(),
-					'line'      => $e->getLine(),
-					'trace'     => $e->getTraceAsString(),
-				]);
-				exit;
-			}
-			catch (\Throwable $viewException) {
-			}
-
-			// Sử dụng wp_die.
-			wp_die(
-				'<h1>ERROR: 500 - Lỗi cấu hình ORM Mapping</h1>' .
-				'<p><strong>Message:</strong> ' . esc_html($message) . '</p>' .
-				'<p><strong>File:</strong> ' . esc_html($e->getFile()) . '</p>' .
-				'<p><strong>Line:</strong> ' . esc_html($e->getLine()) . '</p>',
-				'ERROR: 500 - Lỗi cấu hình ORM Mapping',
-				[
-					'response'  => 500,
-					'back_link' => true,
-				]
-			);
-		}
-		// Production mode
-		else {
-			// Sử dụng view.
-			try {
-				echo $this->funcs->view('errors.default', [
-					'message' => 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau hoặc liên hệ quản trị viên.',
-				]);
-				exit;
-			}
-			catch (\Throwable $viewException) {
-			}
-
-			// Sử dụng wp_die.
-			wp_die(
-				'<h1>ERROR: 500 - Lỗi hệ thống</h1>' .
-				'<p>Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau hoặc liên hệ quản trị viên.</p>',
-				'ERROR: 500 - Lỗi hệ thống',
-				[
-					'response'  => 500,
-					'back_link' => true,
-				]
-			);
-		}
 	}
 
 	protected function handleQueryException(\Throwable $e) {
